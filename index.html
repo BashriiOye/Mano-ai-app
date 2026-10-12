@@ -1,0 +1,2233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#05060a">
+<title>Mano · AI Assistant</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   1. TOKENS
+   ============================================================ */
+:root{
+  --bg:#05060a;
+  --bg-2:#0a0d18;
+  --surface:rgba(255,255,255,0.045);
+  --surface-2:rgba(255,255,255,0.075);
+  --surface-3:rgba(255,255,255,0.11);
+  --border:rgba(255,255,255,0.09);
+  --border-strong:rgba(255,255,255,0.18);
+  --text:#f5f7ff;
+  --text-2:#a8b3c9;
+  --text-3:#6b7690;
+  --accent:#7c8cff;
+  --accent-2:#a78bfa;
+  --cyan:#22d3ee;
+  --amber:#ffb74d;
+  --mint:#5eead4;
+  --coral:#ff6b6b;
+  --grad-primary:linear-gradient(135deg,#7c8cff 0%,#a78bfa 50%,#22d3ee 100%);
+  --grad-blue:linear-gradient(135deg,#7c8cff 0%,#4f6bff 100%);
+  --r-sm:12px; --r-md:18px; --r-lg:24px; --r-xl:32px; --r-pill:999px;
+  --dock-h:76px;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --ease:cubic-bezier(.4,0,.2,1);
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+  --shadow-sm:0 2px 8px rgba(0,0,0,.35);
+  --shadow-md:0 8px 24px rgba(0,0,0,.45);
+  --shadow-lg:0 18px 48px rgba(0,0,0,.6);
+  --shadow-glow:0 0 30px rgba(124,140,255,.35);
+}
+
+/* ============================================================
+   2. RESET
+   ============================================================ */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html{min-height:100dvh;-webkit-text-size-adjust:100%}
+@supports not (height:100dvh){html{min-height:100vh}}
+body{
+  min-height:100dvh;
+  font-family:'Inter',system-ui,sans-serif;
+  color:var(--text);
+  background:var(--bg);
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  position:relative;
+}
+button,input,select,textarea{font-family:inherit;color:inherit;border:none;background:none;outline:none}
+button{cursor:pointer}
+img{display:block;max-width:100%}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ============================================================
+   3. AURORA BACKGROUND
+   ============================================================ */
+.aurora{
+  position:fixed;inset:-15%;z-index:-2;
+  filter:blur(90px);opacity:.9;
+  background:
+    radial-gradient(circle at 18% 22%,#3b2a7a 0%,transparent 42%),
+    radial-gradient(circle at 82% 8%,#0e4a6b 0%,transparent 40%),
+    radial-gradient(circle at 50% 92%,#1e2f5c 0%,transparent 48%),
+    radial-gradient(circle at 92% 78%,#3a1f5c 0%,transparent 45%);
+  animation:auroraShift 32s ease-in-out infinite alternate;
+  will-change:transform;
+}
+@keyframes auroraShift{
+  0%  {transform:translate3d(0,0,0) scale(1)}
+  50% {transform:translate3d(2.5%,-2%,0) scale(1.06)}
+  100%{transform:translate3d(-2%,2.5%,0) scale(1.1)}
+}
+.grain{
+  position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.035;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   4. LAYOUT / SCREENS
+   ============================================================ */
+.screen{
+  display:none;
+  min-height:100dvh;
+  padding:calc(76px + var(--safe-t)) 0 calc(200px + var(--safe-b));
+  opacity:0;
+  transition:opacity .26s var(--ease);
+  will-change:opacity;
+}
+@supports not (min-height:100dvh){.screen{min-height:100vh}}
+.screen.active{display:block;opacity:1;transform:none}
+.wrap{padding:0 18px}
+
+/* ============================================================
+   5. GLASS CARD BASE
+   ============================================================ */
+.glass{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-top-color:var(--border-strong);
+  border-radius:var(--r-lg);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),var(--shadow-md);
+  backdrop-filter:blur(22px) saturate(140%);
+  -webkit-backdrop-filter:blur(22px) saturate(140%);
+  position:relative;
+  overflow:hidden;
+}
+.glass::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(135deg,rgba(255,255,255,.06) 0%,transparent 40%);
+  opacity:.7;
+}
+
+/* ============================================================
+   6. TYPOGRAPHY HELPERS
+   ============================================================ */
+.eyebrow{
+  font-size:10.5px;font-weight:700;letter-spacing:1.6px;
+  text-transform:uppercase;color:var(--text-3);
+}
+.section-head{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:0 4px;margin:4px 0 12px;
+}
+.section-head .count{
+  font-size:11px;font-weight:700;color:var(--accent);
+  padding:4px 10px;border-radius:10px;
+  background:rgba(124,140,255,.14);
+  border:1px solid rgba(124,140,255,.22);
+}
+
+/* ============================================================
+   7. TOP BAR
+   ============================================================ */
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:50;
+  display:flex;justify-content:space-between;align-items:center;
+  padding:calc(14px + var(--safe-t)) 20px 14px;
+  pointer-events:none;
+}
+.topbar > *{pointer-events:auto}
+.topbar .title{
+  font-family:'Dancing Script',cursive;
+  font-size:26px;font-weight:700;
+  text-shadow:0 2px 12px rgba(0,0,0,.7);
+}
+.icon-btn{
+  width:40px;height:40px;border-radius:14px;
+  display:grid;place-items:center;
+  background:var(--surface);border:1px solid var(--border);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  color:#fff;font-size:19px;
+  transition:transform .22s var(--ease-spring),background .2s var(--ease);
+  position:relative;
+}
+.icon-btn:active{transform:scale(.88)}
+.icon-btn.bell::after{
+  content:'';position:absolute;top:9px;right:9px;
+  width:7px;height:7px;border-radius:50%;
+  background:var(--amber);box-shadow:0 0 10px var(--amber);
+  animation:bellPulse 2.2s var(--ease) infinite;
+}
+@keyframes bellPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.35);opacity:.55}}
+
+/* ============================================================
+   9. HERO
+   ============================================================ */
+.hero{padding:0 18px;display:flex;flex-direction:column;gap:14px}
+.pill{
+  display:inline-flex;align-items:center;gap:8px;
+  align-self:flex-start;padding:7px 14px;border-radius:var(--r-pill);
+  background:var(--surface);border:1px solid var(--border);
+  font-size:12px;color:var(--text-2);
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.pill .dot{
+  width:6px;height:6px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 10px var(--mint);animation:dotPulse 2s var(--ease) infinite;
+}
+@keyframes dotPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.5);opacity:.55}}
+.pill b{color:#fff;font-weight:600}
+.pill a{
+  color:var(--accent);font-weight:700;text-decoration:none;
+  padding:3px 10px;border-radius:10px;
+  background:rgba(124,140,255,.15);border:1px solid rgba(124,140,255,.3);
+  font-size:11px;margin-left:2px;
+}
+
+.greeting{display:flex;flex-direction:column;gap:6px}
+.greeting .lbl{font-size:14px;color:var(--text-2);display:flex;align-items:center;gap:6px}
+.greeting .name{
+  font-family:'Dancing Script',cursive;
+  font-size:46px;line-height:1;font-weight:700;
+  background:linear-gradient(120deg,#fff 20%,#a5b4ff 55%,#67e8f9 90%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  padding-bottom:8px;
+  filter:drop-shadow(0 2px 18px rgba(124,140,255,.35));
+}
+
+/* ============================================================
+   10. BENTO GRID
+   ============================================================ */
+.bento{
+  display:grid;grid-template-columns:1.15fr 1fr;gap:10px;
+  padding:0 18px;margin-top:18px;
+}
+.bento .cell{padding:15px 16px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:transform .22s var(--ease)}
+.bento .cell:active{transform:scale(.97)}
+.bento .cell .ico{
+  width:34px;height:34px;border-radius:12px;
+  display:grid;place-items:center;font-size:17px;
+  background:rgba(124,140,255,.14);
+  border:1px solid rgba(124,140,255,.22);
+}
+.bento .cell.cyan .ico{background:rgba(34,211,238,.14);border-color:rgba(34,211,238,.24)}
+.bento .cell.amber .ico{background:rgba(255,183,77,.14);border-color:rgba(255,183,77,.24)}
+.bento .cell.mint .ico{background:rgba(94,234,212,.14);border-color:rgba(94,234,212,.24)}
+.bento .cell .lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-3)}
+.bento .cell .val{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;letter-spacing:-.5px;line-height:1}
+.bento .cell .sub{font-size:11px;color:var(--text-2);margin-top:auto}
+.bento .cell .clock{font-family:'JetBrains Mono',monospace;font-size:22px;font-weight:700;letter-spacing:-1px}
+
+/* Signature */
+.signature{
+  display:inline-flex;align-items:center;gap:8px;
+  margin-top:6px;padding:6px 12px;border-radius:999px;
+  background:linear-gradient(135deg,rgba(124,140,255,.16),rgba(34,211,238,.06));
+  border:1px solid rgba(124,140,255,.28);
+  font-size:11px;font-weight:600;letter-spacing:.4px;
+  color:#c8d2e8;align-self:flex-start;
+  box-shadow:0 0 18px rgba(124,140,255,.15);
+}
+.signature .spark{
+  font-size:12px;
+  background:linear-gradient(135deg,#7c8cff,#22d3ee);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.signature b{
+  background:linear-gradient(120deg,#fff 0%,#a5b4ff 60%,#67e8f9 100%);
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  font-weight:800;letter-spacing:.2px;
+}
+
+/* ============================================================
+   11. QUICK ACTIONS
+   ============================================================ */
+.qa-row{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;padding:0 18px}
+.qa{
+  display:flex;flex-direction:column;align-items:center;gap:7px;
+  padding:15px 6px;border-radius:var(--r-md);cursor:pointer;
+  background:var(--surface);border:1px solid var(--border);border-top-color:var(--border-strong);
+  transition:transform .22s var(--ease);
+  position:relative;overflow:hidden;
+}
+.qa:active{transform:scale(.94)}
+.qa .em{font-size:22px;transition:transform .32s var(--ease-spring);filter:drop-shadow(0 2px 6px rgba(0,0,0,.4))}
+.qa:active .em{transform:scale(1.2) rotate(-8deg)}
+.qa .nm{font-size:10px;font-weight:600;color:var(--text-2)}
+.qa.accent{
+  background:linear-gradient(135deg,rgba(124,140,255,.22),rgba(124,140,255,.05));
+  border-color:rgba(124,140,255,.32);border-top-color:rgba(124,140,255,.5);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 0 22px rgba(124,140,255,.16);
+}
+
+/* ============================================================
+   12. CHIPS
+   ============================================================ */
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 18px}
+.chip{
+  padding:9px 14px;border-radius:var(--r-pill);
+  background:var(--surface);border:1px solid var(--border);border-top-color:var(--border-strong);
+  font-size:12px;font-weight:600;color:#dde4f5;cursor:pointer;
+  display:inline-flex;align-items:center;gap:6px;
+  transition:transform .2s var(--ease),background .2s var(--ease);
+}
+.chip:active{transform:scale(.94);background:var(--surface-2)}
+
+/* ============================================================
+   13. FLOATING INPUT
+   ============================================================ */
+.inputbar{
+  position:fixed;left:14px;right:14px;
+  bottom:calc(var(--dock-h) + var(--safe-b) + 10px);
+  z-index:15;
+  display:flex;align-items:center;gap:8px;
+  padding:8px 8px 8px 18px;
+  border-radius:var(--r-pill);
+  background:rgba(15,20,34,.72);
+  border:1px solid var(--border);border-top-color:var(--border-strong);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),var(--shadow-lg);
+  backdrop-filter:blur(26px) saturate(160%);
+  -webkit-backdrop-filter:blur(26px) saturate(160%);
+  transition:border-color .3s var(--ease),box-shadow .3s var(--ease),transform .3s var(--ease-out);
+}
+.inputbar:focus-within{
+  border-color:rgba(124,140,255,.5);border-top-color:rgba(124,140,255,.7);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),var(--shadow-lg),0 0 26px rgba(124,140,255,.28);
+  transform:translateY(-2px);
+}
+.inputbar input{flex:1;padding:10px 0;font-size:14.5px;color:#fff}
+.inputbar input::placeholder{color:var(--text-3)}
+.send{
+  width:40px;height:40px;border-radius:50%;flex-shrink:0;
+  background:var(--grad-blue);color:#fff;
+  display:grid;place-items:center;font-size:15px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 6px 18px rgba(124,140,255,.45);
+  position:relative;overflow:hidden;
+  transition:transform .2s var(--ease-spring);
+}
+.send:active{transform:scale(.88)}
+
+/* ============================================================
+   14. DOCK NAV (floating pill)
+   ============================================================ */
+.dock{
+  position:fixed;left:14px;right:14px;
+  bottom:calc(var(--safe-b) + 12px);
+  z-index:20;
+  height:var(--dock-h);
+  display:flex;align-items:center;justify-content:space-around;
+  padding:0 8px;
+  border-radius:var(--r-xl);
+  background:rgba(12,16,28,.78);
+  border:1px solid var(--border);border-top-color:var(--border-strong);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),var(--shadow-lg);
+  backdrop-filter:blur(28px) saturate(160%);
+  -webkit-backdrop-filter:blur(28px) saturate(160%);
+}
+.dock-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:6px 2px;border-radius:14px;cursor:pointer;
+  color:var(--text-3);font-size:9.5px;font-weight:600;
+  transition:color .22s var(--ease),transform .22s var(--ease);
+  position:relative;
+}
+.dock-item svg{
+  width:23px;height:23px;stroke:currentColor;fill:none;
+  stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;
+  transition:stroke .22s var(--ease),filter .22s var(--ease);
+}
+.dock-item.active{color:#fff}
+.dock-item.active svg{stroke:var(--accent);filter:drop-shadow(0 0 8px rgba(124,140,255,.75))}
+.dock-item.active::after{
+  content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+  width:4px;height:4px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 10px var(--accent);
+}
+.dock-item:active{transform:scale(.9)}
+
+/* Mic FAB (elevated, center) */
+.dock-mic{
+  flex:0 0 auto;width:66px;display:flex;justify-content:center;
+  position:relative;margin-top:-30px;
+}
+.mic-fab{
+  width:60px;height:60px;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,#7c8cff 0%,#a78bfa 55%,#22d3ee 120%);
+  border:1px solid rgba(255,255,255,.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.5),
+    0 10px 26px rgba(124,140,255,.55),
+    0 0 0 4px rgba(12,16,28,.78),
+    0 0 0 5px rgba(124,140,255,.25);
+  cursor:pointer;
+  transition:transform .25s var(--ease-spring),box-shadow .25s var(--ease);
+  position:relative;
+}
+.mic-fab svg{
+  width:24px;height:24px;stroke:#fff;fill:none;
+  stroke-width:2;stroke-linecap:round;stroke-linejoin:round;
+  filter:drop-shadow(0 0 6px rgba(255,255,255,.5));
+}
+.mic-fab:active{transform:scale(.9)}
+.mic-fab.recording{
+  background:linear-gradient(135deg,#ff6b6b 0%,#d63b3b 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.35),
+    0 10px 30px rgba(255,107,107,.65),
+    0 0 0 4px rgba(12,16,28,.78),
+    0 0 0 5px rgba(255,107,107,.45);
+  animation:micRing 1.4s var(--ease) infinite;
+}
+@keyframes micRing{
+  0%,100%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 30px rgba(255,107,107,.6),0 0 0 4px rgba(12,16,28,.78),0 0 0 5px rgba(255,107,107,.45)}
+  50%{box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 30px rgba(255,107,107,.5),0 0 0 4px rgba(12,16,28,.78),0 0 0 9px rgba(255,107,107,.2)}
+}
+
+/* ============================================================
+   15. CHAT
+   ============================================================ */
+.chat-head{display:flex;gap:10px;padding:0 20px;margin-bottom:14px}
+.chat-head .act{
+  flex:1;padding:11px;border-radius:14px;
+  background:var(--surface);border:1px solid var(--border);border-top-color:var(--border-strong);
+  font-size:12px;font-weight:700;
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  transition:transform .2s var(--ease),background .2s var(--ease);
+}
+.chat-head .act:active{transform:scale(.94)}
+.chat-head .act.danger{color:var(--coral);border-color:rgba(255,107,107,.28)}
+.chat-head .act.success{color:var(--mint);border-color:rgba(94,234,212,.28)}
+
+.chat-scroll{
+  display:flex;flex-direction:column;gap:14px;
+  padding:0 18px;min-height:50vh;
+}
+.empty{
+  text-align:center;padding:22vh 30px 0;
+}
+.empty .orb{
+  width:88px;height:88px;margin:0 auto 22px;
+  border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,rgba(124,140,255,.6),rgba(124,140,255,.05) 70%);
+  border:1px solid rgba(124,140,255,.3);
+  display:grid;place-items:center;font-size:34px;
+  box-shadow:0 0 60px rgba(124,140,255,.35);
+  animation:orbFloat 4.5s var(--ease) infinite;
+}
+@keyframes orbFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.empty h3{font-family:'Dancing Script',cursive;font-size:30px;margin-bottom:8px;color:#fff}
+.empty p{color:var(--text-2);font-size:13.5px;line-height:1.6}
+
+.msg{display:flex;gap:10px;max-width:88%;animation:msgIn .42s var(--ease-spring)}
+@keyframes msgIn{
+  from{opacity:0;transform:translateY(12px) scale(.94)}
+  to{opacity:1;transform:translateY(0) scale(1)}
+}
+.msg.user{align-self:flex-end;flex-direction:row-reverse}
+.msg .bubble{
+  padding:12px 15px;border-radius:20px;
+  font-size:14px;line-height:1.55;white-space:pre-wrap;
+  word-break:break-word;
+}
+.msg.ai .bubble{
+  background:var(--surface);border:1px solid var(--border);border-top-color:var(--border-strong);
+  border-bottom-left-radius:6px;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+}
+.msg.user .bubble{
+  background:linear-gradient(135deg,#7c8cff 0%,#4f6bff 100%);
+  border:1px solid rgba(255,255,255,.2);border-top-color:rgba(255,255,255,.4);
+  border-bottom-right-radius:6px;color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 6px 18px rgba(124,140,255,.35);
+}
+.msg .av{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;
+  display:grid;place-items:center;font-size:15px;
+  background:linear-gradient(135deg,rgba(124,140,255,.3),rgba(167,139,250,.15));
+  border:1px solid rgba(124,140,255,.3);
+}
+.msg.user .av{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.15)}
+.meta{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  font-size:10px;color:rgba(255,255,255,.4);margin-top:6px;
+  padding-top:6px;border-top:1px solid rgba(255,255,255,.06);
+}
+.meta button{font-size:10px;color:rgba(255,255,255,.5);padding:2px 6px;border-radius:6px}
+
+.typing{
+  display:inline-flex;gap:5px;padding:14px 18px;
+  background:var(--surface);border:1px solid var(--border);border-top-color:var(--border-strong);
+  border-radius:20px;border-bottom-left-radius:6px;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  animation:msgIn .4s var(--ease-spring);
+}
+.typing span{
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);box-shadow:0 0 10px var(--accent);
+  animation:tpBounce 1.35s var(--ease) infinite;
+}
+.typing span:nth-child(2){animation-delay:.18s}
+.typing span:nth-child(3){animation-delay:.36s}
+@keyframes tpBounce{
+  0%,60%,100%{transform:translateY(0);opacity:.5}
+  30%{transform:translateY(-6px);opacity:1}
+}
+
+/* ============================================================
+   16. DRAWER
+   ============================================================ */
+.scrim{
+  position:fixed;inset:0;z-index:99;
+  background:rgba(0,0,0,.6);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .28s var(--ease),visibility .28s var(--ease);
+}
+.scrim.open{opacity:1;visibility:visible;pointer-events:auto}
+.drawer{
+  position:fixed;top:0;left:0;bottom:0;width:84%;max-width:340px;z-index:100;
+  padding:calc(20px + var(--safe-t)) 20px calc(20px + var(--safe-b));
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+  background:rgba(15,20,34,.9);
+  border-right:1px solid var(--border);
+  border-top-right-radius:28px;border-bottom-right-radius:28px;
+  backdrop-filter:blur(30px) saturate(160%);
+  -webkit-backdrop-filter:blur(30px) saturate(160%);
+  box-shadow:20px 0 60px rgba(0,0,0,.7);
+  transform:translateX(-102%);
+  transition:transform .38s var(--ease-out);
+  will-change:transform;
+}
+.drawer.open{transform:translateX(0)}
+.drawer-head{display:flex;align-items:center;gap:14px;padding-bottom:18px;margin-bottom:20px;border-bottom:1px solid var(--border)}
+.drawer-head .logo{
+  width:48px;height:48px;border-radius:16px;
+  background:var(--grad-primary);
+  display:grid;place-items:center;font-family:'Dancing Script',cursive;
+  font-size:22px;font-weight:700;color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 6px 18px rgba(124,140,255,.4);
+}
+.drawer-head h2{font-family:'Dancing Script',cursive;font-size:26px;line-height:1}
+.drawer-head p{font-size:11px;color:var(--text-3);margin-top:2px}
+.drawer-sec{margin-bottom:22px}
+.drawer-sec h4{
+  font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--text-3);padding:0 6px;margin-bottom:10px;
+}
+.drawer-item{
+  display:flex;align-items:center;gap:14px;
+  padding:13px 14px;border-radius:16px;cursor:pointer;
+  background:var(--surface);border:1px solid var(--border);
+  margin-bottom:6px;font-size:14px;font-weight:500;
+  transition:background .2s var(--ease),transform .15s var(--ease);
+  opacity:0;transform:translateX(-18px);
+  animation:drawerIn .42s var(--ease-out) forwards;
+}
+@keyframes drawerIn{to{opacity:1;transform:translateX(0)}}
+.drawer-item:nth-child(1){animation-delay:.02s}
+.drawer-item:nth-child(2){animation-delay:.05s}
+.drawer-item:nth-child(3){animation-delay:.08s}
+.drawer-item:nth-child(4){animation-delay:.11s}
+.drawer-item:nth-child(5){animation-delay:.14s}
+.drawer-item:nth-child(6){animation-delay:.17s}
+.drawer-item:nth-child(7){animation-delay:.2s}
+.drawer-item:nth-child(8){animation-delay:.23s}
+.drawer-item .ico{
+  width:34px;height:34px;border-radius:12px;flex-shrink:0;
+  display:grid;place-items:center;font-size:16px;
+  background:rgba(124,140,255,.13);
+  border:1px solid rgba(124,140,255,.2);
+}
+.drawer-item:active{transform:scale(.97);background:var(--surface-2)}
+.drawer-item.on{
+  background:linear-gradient(135deg,rgba(124,140,255,.2),rgba(124,140,255,.04));
+  border-color:rgba(124,140,255,.35);
+}
+.drawer-item.on .ico{background:rgba(124,140,255,.28);border-color:rgba(124,140,255,.5)}
+.drawer-foot{text-align:center;font-size:10.5px;color:var(--text-3);padding:16px 0 4px}
+
+/* ============================================================
+   17. COMMAND PALETTE
+   ============================================================ */
+.cmd{
+  position:fixed;inset:0;z-index:200;
+  display:flex;align-items:flex-start;justify-content:center;
+  padding:14vh 16px 20px;
+  background:rgba(2,4,10,.7);
+  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .24s var(--ease),visibility .24s var(--ease);
+}
+.cmd.open{opacity:1;visibility:visible;pointer-events:auto}
+.cmd-box{
+  width:100%;max-width:480px;
+  background:rgba(18,24,40,.96);
+  border:1px solid var(--border-strong);
+  border-radius:22px;overflow:hidden;
+  box-shadow:var(--shadow-lg),0 0 60px rgba(124,140,255,.22);
+  transform:translateY(-14px) scale(.98);
+  transition:transform .3s var(--ease-spring);
+}
+.cmd.open .cmd-box{transform:translateY(0) scale(1)}
+.cmd-search{
+  display:flex;align-items:center;gap:12px;
+  padding:16px 20px;border-bottom:1px solid var(--border);
+}
+.cmd-search .ico{
+  width:22px;height:22px;display:grid;place-items:center;
+  font-size:14px;color:var(--accent);
+}
+.cmd-search input{flex:1;font-size:15px;color:#fff}
+.cmd-search input::placeholder{color:var(--text-3)}
+.cmd-list{max-height:56vh;overflow-y:auto;padding:8px}
+.cmd-item{
+  display:flex;align-items:center;gap:14px;
+  padding:12px 14px;border-radius:14px;cursor:pointer;
+  font-size:14px;color:#e2e8f7;
+  transition:background .15s var(--ease);
+}
+.cmd-item:active,.cmd-item:hover{background:rgba(124,140,255,.13)}
+.cmd-item .ci{
+  width:34px;height:34px;border-radius:12px;flex-shrink:0;
+  display:grid;place-items:center;font-size:17px;
+  background:rgba(124,140,255,.12);
+}
+
+/* ============================================================
+   18. LIST CARDS (memories, settings)
+   ============================================================ */
+.card-list{display:flex;flex-direction:column;gap:10px;padding:0 18px}
+.lcard{
+  display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:18px;border-radius:var(--r-md);cursor:pointer;
+  background:var(--surface);border:1px solid var(--border);border-top-color:var(--border-strong);
+  transition:transform .2s var(--ease),background .2s var(--ease);
+}
+.lcard:active{transform:scale(.98);background:var(--surface-2)}
+.lcard h4{font-family:'Dancing Script',cursive;font-size:19px;line-height:1.1;margin-bottom:4px}
+.lcard p{font-size:11.5px;color:var(--text-2)}
+.lcard .play{color:var(--accent);font-size:13px;font-weight:700;display:flex;align-items:center;gap:4px}
+
+.set-section{margin-bottom:26px}
+.set-section h4{
+  font-size:10px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--text-3);padding:0 22px;margin-bottom:10px;
+}
+.set-card{
+  padding:16px;border-radius:var(--r-md);margin:0 18px 10px;
+  background:var(--surface);border:1px solid var(--border);border-top-color:var(--border-strong);
+}
+.field{margin-bottom:14px}
+.field:last-child{margin-bottom:0}
+.field label{display:block;font-size:11.5px;font-weight:600;color:#c5cde0;margin-bottom:7px}
+.field input,.field select{
+  width:100%;padding:12px 14px;border-radius:12px;
+  background:rgba(0,0,0,.3);
+  border:1px solid var(--border);border-top-color:var(--border-strong);
+  font-size:14px;color:#fff;
+  -webkit-appearance:none;appearance:none;
+}
+.field select{
+  background-image:linear-gradient(45deg,transparent 50%,var(--accent) 50%),
+                   linear-gradient(135deg,var(--accent) 50%,transparent 50%);
+  background-position:calc(100% - 20px) center,calc(100% - 15px) center;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  padding-right:35px;
+}
+.field select option{background:#151c2c}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;gap:14px}
+.toggle-row .lab{display:flex;align-items:center;gap:12px}
+.toggle-row .lab .ico{
+  width:34px;height:34px;border-radius:12px;
+  display:grid;place-items:center;font-size:15px;
+  background:rgba(124,140,255,.13);border:1px solid rgba(124,140,255,.2);
+}
+.toggle-row h5{font-size:14px;font-weight:600}
+.toggle-row p{font-size:11px;color:var(--text-2);margin-top:1px}
+.switch{position:relative;width:48px;height:28px;flex-shrink:0}
+.switch input{opacity:0;width:100%;height:100%;position:absolute;cursor:pointer;z-index:2}
+.switch .track{
+  position:absolute;inset:0;border-radius:34px;
+  background:rgba(0,0,0,.35);border:1px solid var(--border);
+  transition:background .3s var(--ease),box-shadow .3s var(--ease);
+}
+.switch .track::before{
+  content:'';position:absolute;width:20px;height:20px;left:3px;top:3px;
+  border-radius:50%;background:linear-gradient(180deg,#fff,#c9d2e5);
+  box-shadow:0 2px 5px rgba(0,0,0,.4);
+  transition:transform .32s var(--ease-spring);
+}
+.switch input:checked + .track{
+  background:linear-gradient(135deg,#7c8cff,#4f6bff);
+  border-color:rgba(124,140,255,.55);
+  box-shadow:0 0 18px rgba(124,140,255,.45);
+}
+.switch input:checked + .track::before{transform:translateX(20px)}
+
+.btn{
+  display:block;width:calc(100% - 36px);margin:8px 18px 0;
+  padding:14px;border-radius:14px;
+  background:linear-gradient(135deg,#7c8cff,#4f6bff);
+  font-size:14px;font-weight:700;color:#fff;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.32),0 8px 22px rgba(124,140,255,.4);
+  transition:transform .2s var(--ease-spring);
+}
+.btn:active{transform:scale(.97)}
+.btn.danger{
+  background:linear-gradient(135deg,#ff6b6b,#d63b3b);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 8px 22px rgba(255,107,107,.4);
+}
+
+/* ============================================================
+   19. RIPPLE
+   ============================================================ */
+.rip{position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent}
+.rip .r-b{
+  position:absolute;border-radius:50%;pointer-events:none;z-index:1;
+  background:radial-gradient(circle,rgba(255,255,255,.42) 0%,rgba(124,140,255,.35) 40%,transparent 72%);
+  transform:scale(0);
+  animation:rBub .85s var(--ease);
+  will-change:transform,opacity;
+}
+@keyframes rBub{0%{transform:scale(0);opacity:1}60%{opacity:.7}100%{transform:scale(2.5);opacity:0}}
+.rip .r-r{
+  position:absolute;border-radius:50%;pointer-events:none;z-index:2;
+  border:1.5px solid rgba(255,255,255,.4);
+  transform:scale(0);
+  animation:rRing .85s var(--ease-out);
+  will-change:transform,opacity;
+}
+@keyframes rRing{0%{transform:scale(0);opacity:1}100%{transform:scale(2);opacity:0}}
+.sburst{
+  position:fixed;border-radius:50%;pointer-events:none;z-index:999;
+  background:radial-gradient(circle,rgba(255,255,255,.4) 0%,rgba(124,140,255,.3) 40%,transparent 72%);
+  transform:scale(0);
+  animation:sBurst .95s var(--ease) forwards;
+  will-change:transform,opacity;
+}
+@keyframes sBurst{0%{transform:scale(0);opacity:.9}100%{transform:scale(8);opacity:0}}
+
+/* ============================================================
+   20. WAKE INDICATOR / TOAST
+   ============================================================ */
+.wake{
+  position:fixed;top:calc(70px + var(--safe-t));left:50%;
+  transform:translateX(-50%) translateY(-80px);
+  padding:10px 20px;border-radius:var(--r-pill);
+  background:rgba(15,20,34,.94);
+  border:1px solid rgba(124,140,255,.5);
+  font-size:13px;font-weight:600;z-index:200;
+  opacity:0;pointer-events:none;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:var(--shadow-lg),0 0 30px rgba(124,140,255,.4);
+  transition:opacity .4s var(--ease-out),transform .4s var(--ease-out);
+}
+.wake.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.wake .pulse{
+  width:8px;height:8px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 12px var(--mint);animation:dotPulse 1s var(--ease) infinite;
+}
+
+/* ============================================================
+   21. SMALL ANIMATIONS
+   ============================================================ */
+@media (prefers-reduced-motion:no-preference){
+  .screen.active > *{animation:screenIn .4s var(--ease-out) both}
+  .screen.active > *:nth-child(1){animation-delay:.01s}
+  .screen.active > *:nth-child(2){animation-delay:.04s}
+  .screen.active > *:nth-child(3){animation-delay:.07s}
+}
+@keyframes screenIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:translateY(0)}
+}
+</style>
+</head>
+<body>
+
+<div class="aurora"></div>
+<div class="grain"></div>
+
+<!-- WAKE INDICATOR -->
+<div class="wake" id="wakeIndicator">
+  <span class="pulse"></span>
+  <span id="wakeText">Listening for "Hey Mano"...</span>
+</div>
+
+<!-- COMMAND PALETTE -->
+<div class="cmd" id="cmdOverlay" onclick="if(event.target===this) closeCmdPalette()">
+  <div class="cmd-box">
+    <div class="cmd-search">
+      <div class="ico">⚡</div>
+      <input type="text" id="cmdInput" placeholder="Search commands..." oninput="filterCommands()">
+    </div>
+    <div class="cmd-list" id="cmdList"></div>
+  </div>
+</div>
+
+<!-- DRAWER -->
+<div class="scrim" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer">
+  <div class="drawer-head">
+    <div class="logo">M</div>
+    <div>
+      <h2>Mano</h2>
+      <p>Built by Bashrii Oye</p>
+    </div>
+  </div>
+  <div class="drawer-sec">
+    <h4>Home</h4>
+    <div class="drawer-item rip" onclick="showScreen('home-screen');setActiveDrawer(0);closeDrawer();"><div class="ico">🏠</div><span>Home</span></div>
+    <div class="drawer-item rip" onclick="showScreen('mano-home-screen');setActiveDrawer(1);closeDrawer();"><div class="ico">✨</div><span>Mano Home</span></div>
+    <div class="drawer-item rip" onclick="showScreen('memories-screen');setActiveDrawer(2);closeDrawer();"><div class="ico">🧠</div><span>Memories</span></div>
+    <div class="drawer-item rip" onclick="showScreen('chat-screen');setActiveDrawer(3);closeDrawer();"><div class="ico">💬</div><span>Chat</span></div>
+  </div>
+  <div class="drawer-sec">
+    <h4>Jarvis Tools</h4>
+    <div class="drawer-item rip" onclick="openReminders();closeDrawer();"><div class="ico">⏰</div><span>Reminders</span></div>
+    <div class="drawer-item rip" onclick="openNotes();closeDrawer();"><div class="ico">📝</div><span>Quick Notes</span></div>
+    <div class="drawer-item rip" onclick="openWeather();closeDrawer();"><div class="ico">🌤️</div><span>Weather</span></div>
+    <div class="drawer-item rip" onclick="openNews();closeDrawer();"><div class="ico">📰</div><span>News Feed</span></div>
+    <div class="drawer-item rip" onclick="openMusic();closeDrawer();"><div class="ico">🎵</div><span>Music</span></div>
+    <div class="drawer-item rip" onclick="openCalculator();closeDrawer();"><div class="ico">🧮</div><span>Calculator</span></div>
+  </div>
+  <div class="drawer-sec">
+    <h4>System</h4>
+    <div class="drawer-item rip" onclick="showScreen('settings-screen');setActiveDrawer(10);closeDrawer();"><div class="ico">⚙️</div><span>Settings</span></div>
+    <div class="drawer-item rip" onclick="showSystemInfo();closeDrawer();"><div class="ico">📊</div><span>System Info</span></div>
+  </div>
+  <div class="drawer-foot">v9.0 · Aurora Edition<br><span style="opacity:.7;margin-top:4px;display:inline-block">Crafted by Bashrii Oye</span></div>
+</div>
+
+<!-- ============ HOME ============ -->
+<div id="home-screen" class="screen active">
+  <div class="topbar">
+    <div class="icon-btn rip" onclick="openDrawer()">☰</div>
+    <div class="title">Mano</div>
+    <div class="icon-btn bell rip" onclick="showNotifications()">🔔</div>
+  </div>
+  <div class="hero">
+    <div class="pill rip">
+      <span class="dot"></span>
+      <b>Jarvis</b><span style="color:var(--text-3)">· All Free</span>
+      <a href="#" onclick="event.preventDefault();openCmdPalette()">⌘ Commands</a>
+    </div>
+    <div class="greeting">
+      <div class="lbl" id="greeting-label">☀️ Good morning</div>
+      <div class="name" id="display-name">Bashrii</div>
+      <div class="signature">
+        <span class="spark">✦</span>
+        <span>Built by <b>Bashrii Oye</b></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bento">
+    <div class="cell glass cyan rip" onclick="openWeather()">
+      <div class="ico">🌤️</div>
+      <div class="lbl">Weather</div>
+      <div class="val" id="weather-temp">--°</div>
+      <div class="sub" id="weather-desc">Loading...</div>
+    </div>
+    <div class="cell glass mint rip" onclick="showSystemInfo()">
+      <div class="ico">🔋</div>
+      <div class="lbl">Battery</div>
+      <div class="val" id="battery-level">--%</div>
+      <div class="sub">System</div>
+    </div>
+    <div class="cell glass rip" onclick="openReminders()">
+      <div class="ico">⏰</div>
+      <div class="lbl">Reminders</div>
+      <div class="val" id="reminders-count">0</div>
+      <div class="sub">Active</div>
+    </div>
+    <div class="cell glass amber rip" onclick="openNotes()">
+      <div class="ico">📝</div>
+      <div class="lbl">Notes</div>
+      <div class="val" id="notes-count">0</div>
+      <div class="sub">Saved</div>
+    </div>
+  </div>
+
+  <div style="height:20px"></div>
+
+  <div class="section-head wrap">
+    <div class="eyebrow">Quick Actions</div>
+    <span class="count" id="live-clock">--:--</span>
+  </div>
+  <div class="qa-row">
+    <div class="qa accent rip" onclick="quickAction('Suggest some music for me')"><div class="em">🎵</div><div class="nm">Music</div></div>
+    <div class="qa rip" onclick="quickAction('Help me study efficiently')"><div class="em">📚</div><div class="nm">Study</div></div>
+    <div class="qa rip" onclick="openWeather()"><div class="em">🌤️</div><div class="nm">Weather</div></div>
+    <div class="qa rip" onclick="openReminders()"><div class="em">⏰</div><div class="nm">Remind</div></div>
+  </div>
+
+  <div style="height:22px"></div>
+
+  <div class="section-head wrap">
+    <div class="eyebrow">Voice Commands</div>
+    <span class="count">Try</span>
+  </div>
+  <div class="chips">
+    <div class="chip rip" onclick="runCommand('What time is it?')">🕐 Time</div>
+    <div class="chip rip" onclick="runCommand('What is today\'s date?')">📅 Date</div>
+    <div class="chip rip" onclick="runCommand('What is the weather?')">🌤️ Weather</div>
+    <div class="chip rip" onclick="runCommand('Tell me a joke')">😄 Joke</div>
+  </div>
+</div>
+
+<!-- ============ MANO HOME ============ -->
+<div id="mano-home-screen" class="screen">
+  <div class="topbar">
+    <div class="icon-btn rip" onclick="openDrawer()">☰</div>
+    <div class="title">Mano</div>
+    <div class="icon-btn bell rip" onclick="showNotifications()">🔔</div>
+  </div>
+
+  <div class="wrap">
+    <div class="glass rip" style="padding:22px;position:relative;overflow:hidden;background:linear-gradient(135deg,rgba(124,140,255,.22),rgba(167,139,250,.1) 55%,rgba(124,140,255,.02)),var(--surface);border-color:rgba(124,140,255,.3)">
+      <div class="eyebrow" style="color:#c9b8ff">✦ Your Personal Space</div>
+      <h2 style="font-family:'Dancing Script',cursive;font-size:34px;line-height:1.05;margin:10px 0 8px">Welcome back,<br><span id="mano-display-name">Bashrii</span> 👋</h2>
+      <p style="font-size:12.5px;color:#d3dae9;line-height:1.55">Your private hub for chats, memories, and everything Mano remembers about you.</p>
+      <div class="signature" style="margin-top:10px">
+        <span class="spark">✦</span>
+        <span>Built by <b>Bashrii Oye</b></span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:16px">
+        <button class="mw-btn rip" style="flex:1;padding:11px;border-radius:14px;background:linear-gradient(135deg,#7c8cff,#4f6bff);border:1px solid rgba(255,255,255,.28);color:#fff;font-weight:700;font-size:12.5px;box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 6px 18px rgba(124,140,255,.42)" onclick="quickAction('What is new today?')">💬 Chat</button>
+        <button class="mw-btn rip" style="flex:1;padding:11px;border-radius:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:700;font-size:12.5px" onclick="showScreen('memories-screen');setActiveDrawer(2);">🧠 Memories</button>
+      </div>
+    </div>
+  </div>
+
+  <div style="height:18px"></div>
+
+  <div class="bento" style="grid-template-columns:1fr 1fr">
+    <div class="cell glass rip" onclick="quickAction('Give me today\'s summary')">
+      <div class="ico">📊</div>
+      <div class="lbl">Today</div>
+      <div class="val" id="mano-chat-count">0</div>
+      <div class="sub">Chats</div>
+    </div>
+    <div class="cell glass rip" onclick="quickAction('What do you remember about me?')">
+      <div class="ico">🧠</div>
+      <div class="lbl">Memories</div>
+      <div class="val" id="mano-memory-count">0</div>
+      <div class="sub">Stored</div>
+    </div>
+  </div>
+
+  <div style="height:22px"></div>
+  <div class="section-head wrap"><div class="eyebrow">Shortcuts</div></div>
+  <div class="qa-row">
+    <div class="qa rip" onclick="quickAction('Start a new chat')"><div class="em">💬</div><div class="nm">Chat</div></div>
+    <div class="qa rip" onclick="openWeather()"><div class="em">🌤️</div><div class="nm">Weather</div></div>
+    <div class="qa rip" onclick="quickAction('Help me plan my day')"><div class="em">📅</div><div class="nm">Plan</div></div>
+    <div class="qa rip" onclick="openReminders()"><div class="em">⏰</div><div class="nm">Remind</div></div>
+    <div class="qa rip" onclick="quickAction('Translate this to Urdu: ')"><div class="em">🌐</div><div class="nm">Translate</div></div>
+    <div class="qa rip" onclick="quickAction('Summarize this: ')"><div class="em">📝</div><div class="nm">Summarize</div></div>
+    <div class="qa rip" onclick="openMusic()"><div class="em">🎵</div><div class="nm">Music</div></div>
+    <div class="qa rip" onclick="showScreen('settings-screen');setActiveDrawer(10);"><div class="em">⚙️</div><div class="nm">Settings</div></div>
+  </div>
+
+  <div style="height:22px"></div>
+  <div class="section-head wrap"><div class="eyebrow">Recent Memories</div><span class="count">4</span></div>
+  <div class="card-list">
+    <div class="lcard rip" onclick="quickAction('Groq se poochho: ')"><div><h4>groq se poochho</h4><p>Ask anything via Groq AI</p></div><div class="play">▶</div></div>
+    <div class="lcard rip" onclick="quickAction('Translate to Urdu: ')"><div><h4>translate to urdu</h4><p>Quick Urdu translation</p></div><div class="play">▶</div></div>
+    <div class="lcard rip" onclick="quickAction('Write a journal entry for today')"><div><h4>journal entry</h4><p>Daily reflections</p></div><div class="play">▶</div></div>
+    <div class="lcard rip" onclick="quickAction('Give me a fun challenge for today')"><div><h4>daily challenge</h4><p>Fun task for your day</p></div><div class="play">▶</div></div>
+  </div>
+</div>
+
+<!-- ============ CHAT ============ -->
+<div id="chat-screen" class="screen">
+  <div class="topbar">
+    <div class="icon-btn rip" onclick="showScreen('home-screen',event)">←</div>
+    <div class="title">Chat</div>
+    <div class="icon-btn bell rip" onclick="showNotifications()">🔔</div>
+  </div>
+
+  <div class="chat-head">
+    <div class="act danger rip" onclick="clearChat(event)">🗑️ Clear</div>
+    <div class="act success rip" onclick="exportChat(event)">📥 Export</div>
+  </div>
+
+  <div class="empty" id="chat-empty-state">
+    <div class="orb">💬</div>
+    <h3>Say hi to Mano</h3>
+    <p>Type a message or tap the mic.<br>Try asking about the weather, a joke, or your day.</p>
+  </div>
+
+  <div class="chat-scroll" id="chat-box" style="display:none"></div>
+</div>
+
+<!-- ============ MEMORIES ============ -->
+<div id="memories-screen" class="screen">
+  <div class="topbar">
+    <div class="icon-btn rip" onclick="showScreen('home-screen',event)">←</div>
+    <div class="title">Memories</div>
+    <div class="icon-btn bell rip" onclick="showNotifications()">🔔</div>
+  </div>
+  <div class="wrap" style="margin-bottom:16px">
+    <h2 style="font-family:'Dancing Script',cursive;font-size:32px;line-height:1">Trained tasks</h2>
+    <p style="font-size:12px;color:var(--text-2);margin-top:4px">Quick-launch your saved routines</p>
+  </div>
+  <div class="card-list">
+    <div class="lcard rip" onclick="quickAction('Groq se poochho: ')"><div><h4>groq se poochho</h4><p>8 steps · sawal · built-in</p></div><div class="play">▶ Play</div></div>
+    <div class="lcard rip" onclick="quickAction('Translate to Urdu: ')"><div><h4>translate to urdu</h4><p>Quick Urdu translation</p></div><div class="play">▶ Play</div></div>
+    <div class="lcard rip" onclick="quickAction('Summarize: ')"><div><h4>summarize text</h4><p>Summarize any long text</p></div><div class="play">▶ Play</div></div>
+  </div>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<div id="settings-screen" class="screen">
+  <div class="topbar">
+    <div class="icon-btn rip" onclick="showScreen('home-screen',event)">←</div>
+    <div class="title">Settings</div>
+    <div class="icon-btn bell rip" onclick="showNotifications()">🔔</div>
+  </div>
+
+  <div class="set-section">
+    <h4>Account</h4>
+    <div class="set-card">
+      <div class="field"><label>Your Name</label><input type="text" id="setting-name" placeholder="e.g. Bashrii" oninput="saveName()"></div>
+      <div class="field"><label>API Key (Optional - Puter needs none)</label><input type="password" id="setting-groq-key" placeholder="Not required"></div>
+      <div class="field"><label>Your City (for weather)</label><input type="text" id="setting-city" placeholder="e.g. Karachi" oninput="saveCity()"></div>
+      <div class="field" style="margin-bottom:0">
+        <label>AI Model</label>
+        <select id="setting-model">
+          <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+          <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
+          <option value="gemma2-9b-it">Gemma 2 9B</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn rip" onclick="saveApiKeys(event)">💾 Save Settings</button>
+  </div>
+
+  <div class="set-section">
+    <h4>Jarvis Mode</h4>
+    <div class="set-card">
+      <div class="toggle-row">
+        <div class="lab"><div class="ico">🎤</div><div><h5>Wake Word</h5><p>Say "Hey Mano"</p></div></div>
+        <label class="switch"><input type="checkbox" id="toggle-wake" onchange="toggleWakeWord()"><span class="track"></span></label>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="toggle-row">
+        <div class="lab"><div class="ico">🔊</div><div><h5>Voice Output</h5><p>Speaks replies aloud</p></div></div>
+        <label class="switch"><input type="checkbox" id="toggle-voice" onchange="toggleVoiceOutput()"><span class="track"></span></label>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="toggle-row">
+        <div class="lab"><div class="ico">✨</div><div><h5>Liquid Effects</h5><p>Ripple animations</p></div></div>
+        <label class="switch"><input type="checkbox" id="toggle-bubbles" checked onchange="toggleBubbles()"><span class="track"></span></label>
+      </div>
+    </div>
+
+    <div class="set-card">
+      <div class="toggle-row" style="margin-bottom:12px">
+        <div class="lab"><div class="ico">🎀</div><div><h5>Voice Personality</h5><p>Cute Pakistani girl</p></div></div>
+      </div>
+      <div class="field">
+        <label>Preset</label>
+        <select id="voice-preset" onchange="applyVoicePreset()">
+          <option value="cute">🎀 Cute Innocent Girl (default)</option>
+          <option value="sweet">💕 Sweet & Soft</option>
+          <option value="playful">✨ Playful Child</option>
+          <option value="calm">🌸 Calm & Gentle</option>
+          <option value="custom">🎛️ Custom</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Voice <span style="color:var(--text-3);font-weight:400">(<span id="voice-count">0</span> available)</span></label>
+        <select id="voice-name" onchange="saveVoiceChoice()"><option value="">Auto (best for Urdu/Pakistani)</option></select>
+      </div>
+      <div class="field">
+        <label>Pitch <span id="pitch-val" style="color:var(--accent);font-weight:700">1.55</span></label>
+        <input type="range" id="voice-pitch" min="0.5" max="2" step="0.05" value="1.55" style="width:100%" oninput="saveVoiceTune()">
+      </div>
+      <div class="field" style="margin-bottom:8px">
+        <label>Speed <span id="rate-val" style="color:var(--accent);font-weight:700">1.02</span></label>
+        <input type="range" id="voice-rate" min="0.6" max="1.5" step="0.02" value="1.02" style="width:100%" oninput="saveVoiceTune()">
+      </div>
+      <button class="btn" style="width:100%;margin:4px 0 0;background:linear-gradient(135deg,#ec4899,#a855f7);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 8px 22px rgba(236,72,153,.4)" onclick="testVoice()">🔊 Test Voice</button>
+    </div>
+    <div class="set-card" style="border-color:rgba(236,72,153,.35)">
+      <div class="toggle-row" style="margin-bottom:10px">
+        <div class="lab"><div class="ico">🔍</div><div><h5>Voice Diagnostics</h5><p>If Mano stays silent, tap below</p></div></div>
+      </div>
+      <button class="btn" style="width:100%;margin:0 0 8px;background:linear-gradient(135deg,#22d3ee,#3b82f6)" onclick="diagnoseVoice()">🔬 Run Voice Test</button>
+      <button class="btn" style="width:100%;margin:0;background:linear-gradient(135deg,#f59e0b,#ef4444)" onclick="forceSpeakTest()">🔊 Force Speak Test</button>
+    </div>
+    <div class="set-card">
+      <div class="toggle-row" style="margin-bottom:12px">
+        <div class="lab"><div class="ico">🌐</div><div><h5>Language</h5><p>Chat · Voice input · Voice output</p></div></div>
+      </div>
+      <div class="field">
+        <label>Chat &amp; Reply Language</label>
+        <select id="lang-chat" onchange="saveLangChat()">
+          <option value="auto">🌍 Auto (mirror my language)</option>
+          <option value="roman-ur">🇵🇰 Roman Urdu (Hello kaise ho)</option>
+          <option value="ur">🇵🇰 اردو (Urdu script)</option>
+          <option value="hi">🇮🇳 हिन्दी (Hindi)</option>
+          <option value="en">🇬🇧 English only</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Voice Input Language (what you speak)</label>
+        <select id="lang-stt" onchange="saveLangSTT()">
+          <option value="ur-PK">🇵🇰 اردو / Roman Urdu (Pakistan)</option>
+          <option value="hi-IN">🇮🇳 हिन्दी (India)</option>
+          <option value="en-IN">🇮🇳 English (India)</option>
+          <option value="en-US">🇬🇧 English (US)</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Voice Output Language (what Mano speaks)</label>
+        <select id="lang-tts" onchange="saveLangTTS()">
+          <option value="auto">🎀 Auto (cute girl voice)</option>
+          <option value="ur">🇵🇰 Urdu voice</option>
+          <option value="hi">🇮🇳 Hindi voice</option>
+          <option value="en-IN">🇮🇳 Indian English</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-section">
+    <h4>Performance</h4>
+    <div class="set-card">
+      <div class="toggle-row">
+        <div class="lab"><div class="ico">📱</div><div><h5>Device</h5><p id="device-model">Detecting...</p></div></div>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="toggle-row">
+        <div class="lab"><div class="ico">🎬</div><div><h5>Live FPS</h5><p id="live-fps-info">Measuring...</p></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="set-section">
+    <h4>Data</h4>
+    <div class="set-card">
+      <div class="toggle-row">
+        <div class="lab"><div class="ico">🧹</div><div><h5>Storage Used</h5><p id="storage-info">Calculating...</p></div></div>
+      </div>
+    </div>
+    <button class="btn danger rip" onclick="clearAllData(event)">🗑️ Clear All Data</button>
+  </div>
+</div>
+
+<!-- FLOATING INPUT (home + chat) -->
+<div class="inputbar" id="home-input" onclick="showScreen('chat-screen',event)">
+  <input type="text" placeholder="Ask Mano anything..." readonly style="cursor:pointer">
+  <button class="send rip">➤</button>
+</div>
+
+<div class="inputbar" id="chat-input" style="display:none">
+  <input type="text" id="user-input" placeholder="Ask Mano anything..." onkeypress="handleKeyPress(event)">
+  <button class="send rip" onclick="sendMessage(event)">➤</button>
+</div>
+
+<!-- DOCK NAV -->
+<nav class="dock">
+  <div class="dock-item active rip" onclick="showScreen('home-screen',event)">
+    <svg viewBox="0 0 24 24"><path d="M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1v-8.5z"/></svg>
+    <span>Home</span>
+  </div>
+  <div class="dock-item rip" onclick="showScreen('mano-home-screen',event)">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><circle cx="12" cy="10" r="3.2"/><path d="M6.2 19.5c.9-2.6 3.1-4.2 5.8-4.2s4.9 1.6 5.8 4.2"/></svg>
+    <span>Mano</span>
+  </div>
+  <div class="dock-mic">
+    <div class="mic-fab rip" id="mic-btn" onclick="startVoice(event)">
+      <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+    </div>
+  </div>
+  <div class="dock-item rip" onclick="openCmdPalette(event)">
+    <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><line x1="20.5" y1="20.5" x2="16.5" y2="16.5"/></svg>
+    <span>Cmd</span>
+  </div>
+  <div class="dock-item rip" onclick="showScreen('chat-screen',event)">
+    <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    <span>Chat</span>
+  </div>
+</nav>
+
+<script>
+/* ============================================================
+   DEVICE DETECTION
+   ============================================================ */
+(function(){
+  const ua = navigator.userAgent;
+  let tier='mid', name='Unknown Device';
+  if(/HUAWEI.*Y8|ANE-LX1|ANE-LX2/i.test(ua)){tier='low';name='Huawei Y8 Prime'}
+  else if(/XQ-AT51|XQ-AT52|Xperia\s*5\s*II/i.test(ua)){tier='high';name='Sony Xperia 5 II'}
+  else if(/Xperia/i.test(ua)){tier='high';name='Sony Xperia'}
+  const mem=navigator.deviceMemory||4, cores=navigator.hardwareConcurrency||4;
+  if(mem<=3 && cores<=4 && tier!=='high') tier='low';
+  if(mem>=8 && cores>=8 && tier!=='low') tier='high';
+  window._deviceInfo={tier,name,cores,mem};
+})();
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let chatHistory = JSON.parse(localStorage.getItem('mano_chat_history')||'[]');
+let reminders = JSON.parse(localStorage.getItem('mano_reminders')||'[]');
+let notes = JSON.parse(localStorage.getItem('mano_notes')||'[]');
+let voiceOutputEnabled = localStorage.getItem('mano_voice_output')==='true';
+let wakeWordEnabled = localStorage.getItem('mano_wake_word')==='true';
+let bubblesEnabled = localStorage.getItem('mano_bubbles')!=='false';
+let deviceTier='mid', weatherData=null;
+let wakeRecognition=null, voiceSessionActive=false, wakeRestartTimer=null;
+let _msgSeq=0;
+let currentScreen='home-screen', isTransitioning=false;
+
+/* ============================================================
+   FPS
+   ============================================================ */
+let frameCount=0, lastFpsUpdate=performance.now(), currentFps=0;
+function measureFPS(){
+  frameCount++;
+  const now=performance.now();
+  if(now-lastFpsUpdate>=1000){
+    currentFps=Math.round(frameCount*1000/(now-lastFpsUpdate));
+    const el=document.getElementById('live-fps-info');
+    if(el) el.textContent=currentFps+' FPS (Live)';
+    frameCount=0;lastFpsUpdate=now;
+  }
+  requestAnimationFrame(measureFPS);
+}
+requestAnimationFrame(measureFPS);
+
+/* ============================================================
+   CLOCK
+   ============================================================ */
+function updateClock(){
+  const n=new Date();
+  const h=n.getHours().toString().padStart(2,'0');
+  const m=n.getMinutes().toString().padStart(2,'0');
+  const el=document.getElementById('live-clock');
+  if(el) el.textContent=h+':'+m;
+}
+setInterval(updateClock,1000);
+
+/* ============================================================
+   BATTERY
+   ============================================================ */
+async function updateBattery(){
+  if(!navigator.getBattery) return;
+  try{
+    const b=await navigator.getBattery();
+    const el=document.getElementById('battery-level');
+    if(el) el.textContent=Math.round(b.level*100)+'%';
+  }catch(e){}
+}
+updateBattery();
+if(navigator.getBattery) navigator.getBattery().then(b=>b.addEventListener('levelchange',updateBattery));
+
+/* ============================================================
+   WEATHER (robust with fallback)
+   ============================================================ */
+const FALLBACK_CITY={name:'Karachi',latitude:24.8607,longitude:67.0011};
+async function fetchWeather(){
+  const raw=(localStorage.getItem('mano_city')||'').trim();
+  const city=raw||'Karachi';
+  try{
+    let hit=null;
+    const geoRes=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name='+encodeURIComponent(city));
+    if(geoRes.ok){
+      const geoData=await geoRes.json();
+      hit=geoData&&geoData.results&&geoData.results[0];
+    }
+    if(!hit&&city.toLowerCase()!=='karachi'){
+      const fbRes=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name=Karachi');
+      if(fbRes.ok){
+        const fbData=await fbRes.json();
+        hit=fbData&&fbData.results&&fbData.results[0];
+      }
+    }
+    if(!hit) hit=FALLBACK_CITY;
+    await loadWeatherFor(hit);
+  }catch(e){
+    try{await loadWeatherFor(FALLBACK_CITY)}
+    catch(_){
+      updateWeatherUI('--\u00B0','Offline');
+      setTimeout(()=>{if(!weatherData) fetchWeather()},8000);
+    }
+  }
+}
+async function loadWeatherFor(place){
+  const lat=place.latitude, lon=place.longitude, name=place.name;
+  const wRes=await fetch('https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+'&current=temperature_2m,weather_code');
+  if(!wRes.ok) throw new Error('weather http '+wRes.status);
+  const wData=await wRes.json();
+  const temp=Math.round(wData.current.temperature_2m);
+  const code=wData.current.weather_code;
+  weatherData={temp,code,city:name};
+  updateWeatherUI(temp+'\u00B0',weatherCodeToText(code));
+}
+function updateWeatherUI(t,d){
+  const te=document.getElementById('weather-temp'), de=document.getElementById('weather-desc');
+  if(te) te.textContent=t;
+  if(de) de.textContent=d;
+}
+function weatherCodeToText(code){
+  const map={0:'Clear',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',45:'Foggy',48:'Foggy',51:'Drizzle',53:'Drizzle',55:'Drizzle',61:'Rain',63:'Rain',65:'Heavy rain',71:'Snow',73:'Snow',75:'Heavy snow',80:'Showers',81:'Showers',82:'Heavy showers',95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'};
+  return map[code]||'Unknown';
+}
+
+/* ============================================================
+   RIPPLES
+   ============================================================ */
+function attachRipples(){
+  document.querySelectorAll('.rip').forEach(el=>{
+    if(el.dataset.rip) return;
+    el.dataset.rip='1';
+    el.addEventListener('pointerdown',function(e){
+      if(!bubblesEnabled) return;
+      requestAnimationFrame(()=>{
+        const r=this.getBoundingClientRect();
+        const s=Math.max(r.width,r.height);
+        const x=e.clientX-r.left-s/2, y=e.clientY-r.top-s/2;
+        const b=document.createElement('span');
+        b.className='r-b';
+        b.style.cssText='width:'+s+'px;height:'+s+'px;left:'+x+'px;top:'+y+'px';
+        const ring=document.createElement('span');
+        ring.className='r-r';
+        ring.style.cssText='width:'+s+'px;height:'+s+'px;left:'+x+'px;top:'+y+'px';
+        if(getComputedStyle(this).position==='static') this.style.position='relative';
+        if(getComputedStyle(this).overflow!=='hidden') this.style.overflow='hidden';
+        this.appendChild(b); this.appendChild(ring);
+        setTimeout(()=>{b.remove();ring.remove()},1000);
+      });
+    },{passive:true});
+  });
+}
+attachRipples();
+
+function fireScreenBubble(x,y){
+  if(!bubblesEnabled) return;
+  requestAnimationFrame(()=>{
+    const b=document.createElement('div');
+    b.className='sburst';
+    const s=80;
+    b.style.cssText='width:'+s+'px;height:'+s+'px;left:'+(x-s/2)+'px;top:'+(y-s/2)+'px';
+    document.body.appendChild(b);
+    setTimeout(()=>b.remove(),1200);
+  });
+}
+
+/* ============================================================
+   SCREEN NAV
+   ============================================================ */
+function showScreen(id,event){
+  if(isTransitioning||id===currentScreen) return;
+  isTransitioning=true;
+  if(event&&event.clientX!==undefined) fireScreenBubble(event.clientX,event.clientY);
+  const cur=document.getElementById(currentScreen);
+  const nxt=document.getElementById(id);
+  cur.style.opacity='0';
+  setTimeout(()=>{
+    cur.classList.remove('active'); cur.style.opacity='';
+    nxt.classList.add('active');
+    nxt.style.opacity='0';
+    void nxt.offsetWidth;
+    nxt.style.opacity='1';
+    currentScreen=id;
+
+    // dock
+    document.querySelectorAll('.dock-item').forEach(n=>n.classList.remove('active'));
+    const dk=document.querySelectorAll('.dock-item');
+    if(id==='home-screen'&&dk[0]) dk[0].classList.add('active');
+    if(id==='mano-home-screen'&&dk[1]) dk[1].classList.add('active');
+    if(id==='chat-screen'&&dk[3]) dk[3].classList.add('active');
+
+    // toggle input bars
+    const homeInput=document.getElementById('home-input');
+    const chatInput=document.getElementById('chat-input');
+    if(id==='chat-screen'){
+      if(homeInput) homeInput.style.display='none';
+      if(chatInput) chatInput.style.display='flex';
+      renderChat();
+    } else if(id==='home-screen'){
+      if(homeInput) homeInput.style.display='flex';
+      if(chatInput) chatInput.style.display='none';
+    } else {
+      if(homeInput) homeInput.style.display='none';
+      if(chatInput) chatInput.style.display='none';
+    }
+
+    if(id==='mano-home-screen') updateManoHome();
+    // Chat opens at bottom; every other screen opens at top
+    if(id==='chat-screen'){
+      setTimeout(()=>{
+        if(chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        window.scrollTo({top: document.body.scrollHeight, behavior:'auto'});
+      }, 40);
+    } else {
+      window.scrollTo({top:0, behavior:'auto'});
+    }
+    attachRipples();
+    setTimeout(()=>{nxt.style.opacity='';isTransitioning=false},250);
+  },200);
+}
+
+/* ============================================================
+   DRAWER
+   ============================================================ */
+function openDrawer(){
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+}
+function closeDrawer(){
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+}
+function setActiveDrawer(i){
+  document.querySelectorAll('.drawer-item').forEach((el,idx)=>el.classList.toggle('on',idx===i));
+}
+
+/* ============================================================
+   QUICK ACTIONS
+   ============================================================ */
+function quickAction(text){
+  showScreen('chat-screen');
+  setTimeout(()=>{
+    const inp=document.getElementById('user-input');
+    inp.value=text; inp.focus();
+  },500);
+}
+function runCommand(text){
+  showScreen('chat-screen');
+  setTimeout(()=>{
+    const inp=document.getElementById('user-input');
+    inp.value=text;
+    sendMessage();
+  },500);
+}
+
+/* ============================================================
+   MANO HOME / WIDGETS
+   ============================================================ */
+function updateManoHome(){
+  const n=localStorage.getItem('mano_name')||'Bashrii';
+  const e1=document.getElementById('mano-display-name'); if(e1) e1.textContent=n;
+  const e2=document.getElementById('mano-chat-count'); if(e2) e2.textContent=chatHistory.length;
+  const e3=document.getElementById('mano-memory-count'); if(e3) e3.textContent=document.querySelectorAll('#memories-screen .lcard').length;
+}
+function updateWidgets(){
+  const r=document.getElementById('reminders-count'); if(r) r.textContent=reminders.length;
+  const n=document.getElementById('notes-count'); if(n) n.textContent=notes.length;
+}
+
+/* ============================================================
+   TOOLS
+   ============================================================ */
+function openReminders(){
+  let msg='⏰ REMINDERS ('+reminders.length+')\n\n';
+  if(!reminders.length) msg+='No reminders yet.';
+  else reminders.forEach((r,i)=>msg+=(i+1)+'. '+r.text+'\n');
+  const a=prompt(msg+'\n\nType:\nADD <reminder>\nDEL <number>\nCLEAR','');
+  if(!a) return;
+  const p=a.split(' '), c=p[0].toUpperCase();
+  if(c==='ADD'){const t=a.substring(4).trim(); if(t){reminders.push({text:t,done:false}); saveReminders(); showToast('⏰ Added!')}}
+  else if(c==='DEL'){const n=parseInt(p[1])-1; if(n>=0&&n<reminders.length){reminders.splice(n,1);saveReminders()}}
+  else if(c==='CLEAR'){reminders=[];saveReminders()}
+}
+function saveReminders(){localStorage.setItem('mano_reminders',JSON.stringify(reminders));updateWidgets()}
+
+function openNotes(){
+  let msg='📝 NOTES ('+notes.length+')\n\n';
+  if(!notes.length) msg+='No notes yet.';
+  else notes.forEach((n,i)=>msg+=(i+1)+'. '+n.text.substring(0,60)+'\n');
+  const a=prompt(msg+'\n\nType:\nADD <note>\nDEL <number>\nCLEAR','');
+  if(!a) return;
+  const p=a.split(' '), c=p[0].toUpperCase();
+  if(c==='ADD'){const t=a.substring(4).trim(); if(t){notes.push({text:t});localStorage.setItem('mano_notes',JSON.stringify(notes));showToast('📝 Saved!')}}
+  else if(c==='DEL'){const n=parseInt(p[1])-1; if(n>=0&&n<notes.length){notes.splice(n,1);localStorage.setItem('mano_notes',JSON.stringify(notes))}}
+  else if(c==='CLEAR'){notes=[];localStorage.setItem('mano_notes',JSON.stringify(notes))}
+  updateWidgets();
+}
+
+function openWeather(){
+  if(!weatherData){fetchWeather();showToast('🌤️ Loading...');return}
+  quickAction('What is the weather in '+weatherData.city+'?');
+}
+function openNews(){quickAction('What are the latest news headlines?')}
+function openMusic(){
+  const q=prompt('🎵 What music?','Lo-fi beats');
+  if(q) window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(q),'_blank');
+}
+function openCalculator(){
+  const e=prompt('🧮 Math expression:','');
+  if(!e) return;
+  try{const s=e.replace(/[^0-9+\-*/().\s]/g,'');alert(e+' = '+Function('"use strict";return ('+s+')')())}
+  catch(_){showToast('❌ Invalid')}
+}
+function showSystemInfo(){
+  const i=window._deviceInfo||{};
+  alert('📊 SYSTEM\n\nDevice: '+i.name+'\nCores: '+i.cores+'\nRAM: '+i.mem+' GB\nFPS: '+currentFps+'\nChat: '+chatHistory.length);
+}
+function showNotifications(){
+  const n=[];
+  if(reminders.length) n.push('⏰ '+reminders.length+' reminders');
+  if(notes.length) n.push('📝 '+notes.length+' notes');
+  if(weatherData) n.push('🌤️ '+weatherData.temp+'°C');
+  if(!n.length) n.push('✨ No new notifications');
+  alert('🔔 NOTIFICATIONS\n\n'+n.join('\n'));
+}
+
+/* ============================================================
+   COMMAND PALETTE
+   ============================================================ */
+function openCmdPalette(e){
+  if(e) e.preventDefault();
+  document.getElementById('cmdOverlay').classList.add('open');
+  document.getElementById('cmdInput').value='';
+  renderCommands([...COMMANDS]);
+  setTimeout(()=>document.getElementById('cmdInput').focus(),100);
+}
+function closeCmdPalette(){document.getElementById('cmdOverlay').classList.remove('open')}
+const COMMANDS=[
+  {icon:'🕐',label:'What time is it?',key:'time'},
+  {icon:'📅',label:"What is today's date?",key:'date'},
+  {icon:'🌤️',label:'What is the weather?',key:'weather'},
+  {icon:'⏰',label:'Set a reminder',key:'remind'},
+  {icon:'📝',label:'Take a note',key:'note'},
+  {icon:'🎵',label:'Play some music',key:'music'},
+  {icon:'🧮',label:'Open calculator',key:'calc'},
+  {icon:'😄',label:'Tell me a joke',key:'joke'},
+  {icon:'💡',label:'Give me a fun fact',key:'fact'},
+  {icon:'📊',label:'Show system info',key:'sysinfo'},
+  {icon:'⚙️',label:'Open settings',key:'settings'}
+];
+function renderCommands(c){
+  document.getElementById('cmdList').innerHTML=c.map(x=>`
+    <div class="cmd-item" onclick="executeCommand('${x.key}')">
+      <span class="ci">${x.icon}</span>
+      <span>${x.label}</span>
+    </div>`).join('');
+}
+function filterCommands(){
+  const q=document.getElementById('cmdInput').value.toLowerCase();
+  renderCommands(COMMANDS.filter(c=>c.label.toLowerCase().includes(q)));
+}
+function executeCommand(k){
+  closeCmdPalette();
+  const map={time:'What time is it?',date:"What is today's date?",weather:'What is the weather?',joke:'Tell me a joke',fact:'Tell me a fun fact'};
+  if(map[k]) quickAction(map[k]);
+  else if(k==='remind') openReminders();
+  else if(k==='note') openNotes();
+  else if(k==='music') openMusic();
+  else if(k==='calc') openCalculator();
+  else if(k==='sysinfo') showSystemInfo();
+  else if(k==='settings'){showScreen('settings-screen');setActiveDrawer(10)}
+}
+
+/* ============================================================
+   WAKE WORD
+   ============================================================ */
+function startWakeWord(){
+  if(!('webkitSpeechRecognition' in window)) return;
+  if(wakeRecognition) return;
+  try{
+    const rec=new webkitSpeechRecognition();
+    rec.continuous=true; rec.interimResults=true; rec.lang='en-US';
+    rec.onresult=function(ev){
+      for(let i=ev.resultIndex;i<ev.results.length;i++){
+        const t=ev.results[i][0].transcript.toLowerCase().trim();
+        if(t.includes('hey mano')||t.includes('hi mano')||t.includes('suno mano')||t.includes('mano suno')||t.includes('सुनो मनो')||t.includes('ارے منو')){
+          const after=t.replace(/.*(hey|hi|hay|suno|mano suno|ارے)\s+mano[,.]?\s*/i,'').trim();
+          try{rec.onend=null;rec.abort()}catch(_){}
+          wakeRecognition=null;
+          if(after.length>0) quickAction(after);
+          else{showWakeIndicator('Yes? Listening...');setTimeout(startVoice,300)}
+          return;
+        }
+      }
+    };
+    rec.onerror=function(e){
+      if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+        wakeWordEnabled=false;
+        localStorage.setItem('mano_wake_word','false');
+        const tg=document.getElementById('toggle-wake');
+        if(tg) tg.checked=false;
+        showToast('🎤 Mic permission denied');
+      }
+    };
+    rec.onend=function(){
+      wakeRecognition=null;
+      if(wakeWordEnabled&&!voiceSessionActive){
+        if(wakeRestartTimer) clearTimeout(wakeRestartTimer);
+        wakeRestartTimer=setTimeout(startWakeWord,800);
+      }
+    };
+    wakeRecognition=rec;
+    rec.start();
+  }catch(_){wakeRecognition=null}
+}
+function stopWakeWord(){
+  wakeWordEnabled=false;
+  if(wakeRestartTimer){clearTimeout(wakeRestartTimer);wakeRestartTimer=null}
+  if(wakeRecognition){try{wakeRecognition.onend=null;wakeRecognition.abort()}catch(_){}wakeRecognition=null}
+}
+function toggleWakeWord(){
+  wakeWordEnabled=document.getElementById('toggle-wake').checked;
+  localStorage.setItem('mano_wake_word',wakeWordEnabled);
+  if(wakeWordEnabled){startWakeWord();showToast('🎤 Wake word ON')}
+  else{stopWakeWord();showToast('🎤 Wake word OFF')}
+}
+function showWakeIndicator(t){
+  const el=document.getElementById('wakeIndicator');
+  document.getElementById('wakeText').textContent=t;
+  el.classList.add('on');
+  setTimeout(()=>el.classList.remove('on'),3000);
+}
+
+/* ============================================================
+   PARTICLES (light)
+   ============================================================ */
+setInterval(()=>{
+  if(document.hidden||deviceTier==='low') return;
+  const p=document.createElement('div');
+  p.style.cssText='position:fixed;width:3px;height:3px;border-radius:50%;background:rgba(200,230,255,.55);box-shadow:0 0 8px rgba(200,230,255,.8);pointer-events:none;z-index:1;left:'+Math.random()*100+'%;';
+  const d=12+Math.random()*8;
+  p.style.animation='particleFloat '+d+'s linear';
+  document.body.appendChild(p);
+  setTimeout(()=>p.remove(),d*1000+500);
+},5000);
+// particleFloat keyframes injected via style tag once
+(function(){
+  const s=document.createElement('style');
+  s.textContent='@keyframes particleFloat{0%{transform:translateY(100vh) scale(.5);opacity:0}15%{opacity:.9}85%{opacity:.9}100%{transform:translateY(-100px) translateX(30px) scale(1.1);opacity:0}}';
+  document.head.appendChild(s);
+})();
+
+/* ============================================================
+   INIT
+   ============================================================ */
+window.addEventListener('load',function(){
+  const info=window._deviceInfo||{tier:'mid',name:'Unknown',cores:4,mem:4};
+  deviceTier=info.tier;
+  document.body.dataset.tier=deviceTier;
+
+  const name=localStorage.getItem('mano_name')||'Bashrii';
+  document.getElementById('display-name').textContent=name;
+  document.getElementById('setting-name').value=name;
+  document.getElementById('setting-groq-key').value=localStorage.getItem('mano_groq_key')||'';
+  document.getElementById('setting-city').value=localStorage.getItem('mano_city')||'';
+  let _mdl=localStorage.getItem('mano_model')||'openai/gpt-oss-120b';
+  if(_mdl==='mixtral-8x7b-32768'){_mdl='openai/gpt-oss-120b';localStorage.setItem('mano_model',_mdl);}
+  document.getElementById('setting-model').value=_mdl;
+  voiceOutputEnabled = localStorage.getItem('mano_voice_output') !== 'false';
+document.getElementById('toggle-voice').checked=voiceOutputEnabled;
+localStorage.setItem('mano_voice_output', voiceOutputEnabled);
+  document.getElementById('toggle-bubbles').checked=bubblesEnabled;
+  document.getElementById('toggle-wake').checked=wakeWordEnabled;
+
+  const dm=document.getElementById('device-model');
+  if(dm) dm.textContent=info.name+' · '+info.cores+' cores';
+
+  updateGreeting();
+  updateManoHome();
+  updateWidgets();
+  updateClock();
+  fetchWeather();
+  setInterval(fetchWeather,900000);
+  updateStorageInfo();
+  renderChat();
+  attachRipples();
+
+  if(wakeWordEnabled) setTimeout(startWakeWord,1000);
+
+  // Always start at very top of Home
+  window.scrollTo(0,0);
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+  setTimeout(()=>{
+    window.scrollTo(0,0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, 50);
+  setTimeout(()=>{
+    window.scrollTo(0,0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, 250);
+});
+
+function updateGreeting(){
+  const h=new Date().getHours();
+  let g='Good evening', e='🌙';
+  if(h<12){g='Good morning';e='☀️'}
+  else if(h<17){g='Good afternoon';e='🌤️'}
+  document.getElementById('greeting-label').textContent=e+' '+g;
+}
+function saveName(){
+  const n=document.getElementById('setting-name').value;
+  localStorage.setItem('mano_name',n);
+  document.getElementById('display-name').textContent=n;
+  updateManoHome();
+}
+function saveCity(){
+  localStorage.setItem('mano_city',document.getElementById('setting-city').value);
+  fetchWeather();
+}
+function saveApiKeys(){
+  const k=document.getElementById('setting-groq-key').value.trim();
+  const m=document.getElementById('setting-model').value;
+  if(!/^gsk_/.test(k) && k.length>0){
+    showToast('⚠️ Key should start with gsk_');
+  }
+  localStorage.setItem('mano_groq_key',k);
+  localStorage.setItem('mano_model',m);
+  showToast('✅ Saved!'); updateStorageInfo(); fetchWeather();
+}
+
+// ============================================================
+// VOICE STUDIO
+// ============================================================
+const VOICE_PRESETS = {
+  cute:     {pitch:1.55, rate:1.02},
+  sweet:    {pitch:1.40, rate:0.96},
+  playful:  {pitch:1.70, rate:1.15},
+  calm:     {pitch:1.30, rate:0.90},
+};
+
+
+// ============================================================
+// VOICE DIAGNOSTICS
+// ============================================================
+function diagnoseVoice(){
+  if(!('speechSynthesis' in window)){
+    alert('❌ speechSynthesis not supported in this browser.');
+    return;
+  }
+  const voices = window.speechSynthesis.getVoices() || [];
+  const lines = [];
+  lines.push('🔬 VOICE DIAGNOSTIC');
+  lines.push('');
+  lines.push('Voice Output toggle: ' + (voiceOutputEnabled ? '✅ ON' : '❌ OFF'));
+  lines.push('Voices installed: ' + voices.length);
+  lines.push('Chrome version: ' + navigator.userAgent.match(/Chrome\/[\d.]+/)?.toString() || 'unknown');
+  lines.push('');
+  if(voices.length === 0){
+    lines.push('❌ NO VOICES FOUND.');
+    lines.push('Fix: Android Settings → Accessibility →');
+    lines.push('Text-to-speech → Install voice data.');
+    lines.push('Then reload this page.');
+  } else {
+    lines.push('Top voices:');
+    voices.slice(0,8).forEach(v=>{
+      lines.push('  • ' + v.name + ' (' + v.lang + ')');
+    });
+    if(voices.length > 8) lines.push('  ... and ' + (voices.length-8) + ' more');
+    lines.push('');
+    const ur = voices.find(v=>/^ur/i.test(v.lang));
+    const hi = voices.find(v=>/^hi/i.test(v.lang));
+    const enIn = voices.find(v=>/^en-IN/i.test(v.lang));
+    lines.push('Urdu voice: ' + (ur ? '✅ '+ur.name : '❌ none'));
+    lines.push('Hindi voice: ' + (hi ? '✅ '+hi.name : '❌ none'));
+    lines.push('Indian EN: ' + (enIn ? '✅ '+enIn.name : '❌ none'));
+  }
+  alert(lines.join('\n'));
+
+  // If everything looks OK, force a speak test
+  if(voiceOutputEnabled && voices.length > 0){
+    setTimeout(()=>forceSpeakTest(), 300);
+  }
+}
+
+function forceSpeakTest(){
+  if(!('speechSynthesis' in window)){ alert('No TTS'); return; }
+  // Force-enable the toggle (user is testing anyway)
+  voiceOutputEnabled = true;
+  localStorage.setItem('mano_voice_output', 'true');
+  const tg = document.getElementById('toggle-voice');
+  if(tg) tg.checked = true;
+
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance('Testing one two three. Mano sun rahi hai.');
+  u.pitch = parseFloat(localStorage.getItem('mano_voice_pitch') || '1.55');
+  u.rate  = parseFloat(localStorage.getItem('mano_voice_rate')  || '1.02');
+  u.volume = 1;
+
+  const voices = window.speechSynthesis.getVoices() || [];
+  const saved = localStorage.getItem('mano_voice_name') || '';
+  let v = voices.find(x=>x.name===saved);
+  if(!v){
+    v = voices.find(x=>/^ur/i.test(x.lang))
+     || voices.find(x=>/^hi/i.test(x.lang))
+     || voices.find(x=>/^en-IN/i.test(x.lang))
+     || voices[0];
+  }
+  if(v){ u.voice = v; u.lang = v.lang; }
+
+  u.onstart = ()=>console.log('Test TTS started with', v ? v.name : 'default');
+  u.onerror = (e)=>alert('TTS error: ' + e.error + '\nTry installing a voice in Android Settings.');
+  window.speechSynthesis.speak(u);
+}
+
+
+// ============================================================
+// LANGUAGE SETTINGS
+// ============================================================
+function getLangChat(){ return localStorage.getItem('mano_lang_chat') || 'auto'; }
+function getLangSTT(){  return localStorage.getItem('mano_lang_stt')  || 'ur-PK'; }
+function getLangTTS(){  return localStorage.getItem('mano_lang_tts')  || 'auto'; }
+
+function saveLangChat(){ localStorage.setItem('mano_lang_chat', document.getElementById('lang-chat').value); showToast('🌐 Chat language updated'); }
+function saveLangSTT(){  localStorage.setItem('mano_lang_stt',  document.getElementById('lang-stt').value);  showToast('🎤 Voice input updated'); }
+function saveLangTTS(){  localStorage.setItem('mano_lang_tts',  document.getElementById('lang-tts').value);  showToast('🔊 Voice output updated'); }
+
+function restoreLangSettings(){
+  const c = document.getElementById('lang-chat'); if(c) c.value = getLangChat();
+  const s = document.getElementById('lang-stt');  if(s) s.value = getLangSTT();
+  const t = document.getElementById('lang-tts');  if(t) t.value = getLangTTS();
+}
+
+// Detect if text contains Urdu/Hindi (Arabic script or Devanagari)
+function detectScript(text){
+  if(/[\u0600-\u06FF]/.test(text)) return 'ur';   // Arabic script → Urdu
+  if(/[\u0900-\u097F]/.test(text)) return 'hi';   // Devanagari → Hindi
+  return 'en';
+}
+
+// Pick the best voice matching the TTS language setting
+function pickVoiceForLang(lang){
+  const voices = (window.speechSynthesis && window.speechSynthesis.getVoices()) || [];
+  const female = ['female','woman','girl','zira','heera','swara','kalpana','lekha','priya','veena','samantha','karen','tessa'];
+
+  if(lang === 'ur'){
+    return voices.find(v=>/^ur/i.test(v.lang) && female.some(w=>v.name.toLowerCase().includes(w)))
+        || voices.find(v=>/^ur/i.test(v.lang))
+        || voices.find(v=>/^hi/i.test(v.lang) && female.some(w=>v.name.toLowerCase().includes(w)))
+        || voices.find(v=>/^hi/i.test(v.lang))
+        || null;
+  }
+  if(lang === 'hi'){
+    return voices.find(v=>/^hi/i.test(v.lang) && female.some(w=>v.name.toLowerCase().includes(w)))
+        || voices.find(v=>/^hi/i.test(v.lang))
+        || voices.find(v=>/^ur/i.test(v.lang))
+        || null;
+  }
+  if(lang === 'en-IN'){
+    return voices.find(v=>/^en-IN/i.test(v.lang) && female.some(w=>v.name.toLowerCase().includes(w)))
+        || voices.find(v=>/^en-IN/i.test(v.lang))
+        || null;
+  }
+  // auto — Urdu/Hindi/Indian female preferred
+  const saved = localStorage.getItem('mano_voice_name') || '';
+  let v = saved ? voices.find(x=>x.name === saved) : null;
+  if(v) return v;
+  return voices.find(x=>/^ur/i.test(x.lang))
+      || voices.find(x=>/^hi/i.test(x.lang))
+      || voices.find(x=>/^en-IN/i.test(x.lang))
+      || voices.find(x=>female.some(w=>x.name.toLowerCase().includes(w)))
+      || null;
+}
+
+function applyVoicePreset(){
+  const p = document.getElementById('voice-preset').value;
+  if(p==='custom') return;
+  const cfg = VOICE_PRESETS[p];
+  if(!cfg) return;
+  document.getElementById('voice-pitch').value = cfg.pitch;
+  document.getElementById('voice-rate').value  = cfg.rate;
+  saveVoiceTune();
+}
+
+function saveVoiceTune(){
+  const pitch = document.getElementById('voice-pitch').value;
+  const rate  = document.getElementById('voice-rate').value;
+  document.getElementById('pitch-val').textContent = pitch;
+  document.getElementById('rate-val').textContent  = rate;
+  localStorage.setItem('mano_voice_pitch', pitch);
+  localStorage.setItem('mano_voice_rate',  rate);
+}
+
+function saveVoiceChoice(){
+  const v = document.getElementById('voice-name').value;
+  localStorage.setItem('mano_voice_name', v);
+}
+
+function populateVoiceList(){
+  const sel = document.getElementById('voice-name');
+  if(!sel) return;
+  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  const count = document.getElementById('voice-count');
+  if(count) count.textContent = voices.length;
+
+  // Keep the "Auto" option + user's current pick
+  const current = localStorage.getItem('mano_voice_name') || '';
+  sel.innerHTML = '<option value="">Auto (best for Urdu/Pakistani)</option>';
+
+  // Sort: Urdu/Hindi/Indian first
+  const sorted = [...voices].sort((a,b)=>{
+    const score = x => {
+      const l = (x.lang||'').toLowerCase();
+      if(l.startsWith('ur')) return 0;
+      if(l.startsWith('hi')) return 1;
+      if(l.startsWith('en-in')) return 2;
+      if(l.startsWith('en')) return 3;
+      return 4;
+    };
+    return score(a) - score(b);
+  });
+
+  sorted.forEach(v=>{
+    const opt = document.createElement('option');
+    opt.value = v.name;
+    opt.textContent = v.name + ' — ' + v.lang;
+    if(v.name === current) opt.selected = true;
+    sel.appendChild(opt);
+  });
+}
+
+// Hook: voices load asynchronously on Android
+if('speechSynthesis' in window){
+  window.speechSynthesis.onvoiceschanged = () => {
+    loadVoices();
+    populateVoiceList();
+  };
+  setTimeout(populateVoiceList, 500);
+  setTimeout(populateVoiceList, 2000);
+}
+
+function toggleVoiceOutput(){
+  voiceOutputEnabled=document.getElementById('toggle-voice').checked;
+  localStorage.setItem('mano_voice_output',voiceOutputEnabled);
+}
+function toggleBubbles(){
+  bubblesEnabled=document.getElementById('toggle-bubbles').checked;
+  localStorage.setItem('mano_bubbles',bubblesEnabled);
+}
+function updateStorageInfo(){
+  let t=0;
+  for(const k in localStorage){if(k.startsWith('mano_')) t+=(localStorage[k].length+k.length)*2}
+  document.getElementById('storage-info').textContent=(t/1024).toFixed(2)+' KB used';
+}
+function clearAllData(){
+  if(!confirm('Delete all data?')) return;
+  localStorage.clear(); location.reload();
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(msg){
+  const t=document.createElement('div');
+  t.textContent=msg;
+  t.style.cssText='position:fixed;bottom:calc(160px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%) translateY(24px) scale(.92);opacity:0;padding:12px 22px;border-radius:999px;background:rgba(15,20,34,.95);border:1px solid rgba(124,140,255,.45);color:#fff;font-size:13px;font-weight:600;z-index:1000;max-width:80%;text-align:center;pointer-events:none;box-shadow:0 12px 32px rgba(0,0,0,.6),0 0 26px rgba(124,140,255,.35);transition:opacity .32s ease,transform .32s cubic-bezier(.34,1.56,.64,1)';
+  document.body.appendChild(t);
+  requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(-50%) translateY(0) scale(1)'});
+  setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(-50%) translateY(24px) scale(.92)';setTimeout(()=>t.remove(),400)},2200);
+}
+
+/* ============================================================
+   CHAT
+   ============================================================ */
+const chatBox=document.getElementById('chat-box');
+const userInput=document.getElementById('user-input');
+const emptyState=document.getElementById('chat-empty-state');
+
+function getTimestamp(){
+  const n=new Date();
+  return n.getHours().toString().padStart(2,'0')+':'+n.getMinutes().toString().padStart(2,'0');
+}
+function escapeHtml(t){const d=document.createElement('div');d.textContent=t;return d.innerHTML}
+function addMessage(text,cls,save=true,ts=null){
+  emptyState.style.display='none'; chatBox.style.display='flex';
+  const time=ts||getTimestamp();
+  const id='msg-'+(++_msgSeq);
+  const m=document.createElement('div');
+  m.className='msg '+cls;
+  if(cls==='ai'){
+    m.innerHTML='<div class="av">✨</div><div class="bubble"><div id="'+id+'">'+escapeHtml(text)+'</div><div class="meta"><span>'+time+'</span><button onclick="copyMessage(\''+id+'\')">📋 Copy</button></div></div>';
+  }else{
+    m.innerHTML='<div class="av">🙂</div><div class="bubble"><div>'+escapeHtml(text)+'</div><div class="meta" style="color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.18)"><span>'+time+'</span></div></div>';
+  }
+  chatBox.appendChild(m);
+  chatBox.scrollTo({top:chatBox.scrollHeight,behavior:'smooth'});
+  if(save){
+    chatHistory.push({text,className:cls,timestamp:time});
+    if(chatHistory.length>100) chatHistory=chatHistory.slice(-100);
+    localStorage.setItem('mano_chat_history',JSON.stringify(chatHistory));
+    updateManoHome();
+  }
+}
+function copyMessage(id){
+  const el=document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent).then(()=>showToast('📋 Copied!'));
+}
+function renderChat(){
+  chatBox.innerHTML='';
+  if(!chatHistory.length){emptyState.style.display='block';chatBox.style.display='none';return}
+  emptyState.style.display='none'; chatBox.style.display='flex';
+  chatHistory.forEach(m=>addMessage(m.text,m.className,false,m.timestamp));
+  // Open chat at BOTTOM — scroll only the inner container
+  requestAnimationFrame(()=>{
+    chatBox.scrollTop = chatBox.scrollHeight;
+  });
+}
+function showTyping(){
+  const t=document.createElement('div');
+  t.className='msg ai'; t.id='typing-indicator';
+  t.innerHTML='<div class="av">✨</div><div class="typing"><span></span><span></span><span></span></div>';
+  chatBox.appendChild(t);
+  chatBox.scrollTo({top:chatBox.scrollHeight,behavior:'smooth'});
+}
+function hideTyping(){const e=document.getElementById('typing-indicator');if(e)e.remove()}
+function clearChat(){
+  if(!confirm('Clear chat?')) return;
+  chatHistory=[]; localStorage.removeItem('mano_chat_history');
+  renderChat(); updateManoHome();
+}
+function exportChat(){
+  if(!chatHistory.length) return;
+  let text='=== Mano Chat ===\n\n';
+  chatHistory.forEach(m=>{text+='['+m.timestamp+'] '+(m.className==='user'?'You':'Mano')+':\n'+m.text+'\n\n'});
+  const b=new Blob([text],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(b); a.download='mano-chat.txt'; a.click();
+}
+let _voices=[];
+function loadVoices(){
+  if(!('speechSynthesis' in window)) return;
+  _voices = window.speechSynthesis.getVoices()||[];
+}
+if('speechSynthesis' in window){
+  loadVoices();
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  // Some browsers need a second nudge
+  setTimeout(loadVoices, 400);
+  setTimeout(loadVoices, 1500);
+}
+
+// Rank voices: Pakistani girl > Hindi girl > Indian English girl > any female
+function pickGirlVoice(){
+  if(!_voices.length) loadVoices();
+  const v = _voices;
+  // Priority: exact lang matches with female-sounding names
+  const femaleWords = ['female','woman','girl','zira','heera','swara','kalpana','lekha','google हिन्दी','google हिंदी','priya','veena','raveena','samantha','karen','tessa','fiona','moira','google uk english female'];
+
+  function isFemale(name){
+    const n = name.toLowerCase();
+    return femaleWords.some(w => n.includes(w));
+  }
+
+  // 1. Urdu (Pakistan)
+  let hit = v.find(x => /^ur/i.test(x.lang) && isFemale(x.name));
+  if(hit) return {voice:hit, reason:'Urdu (Pakistan) female'};
+
+  let hit2 = v.find(x => /^ur/i.test(x.lang));
+  if(hit2) return {voice:hit2, reason:'Urdu (Pakistan)'};
+
+  // 2. Hindi (India) — closest phonetics to Urdu
+  let hit3 = v.find(x => /^hi/i.test(x.lang) && isFemale(x.name));
+  if(hit3) return {voice:hit3, reason:'Hindi female'};
+
+  let hit4 = v.find(x => /^hi/i.test(x.lang));
+  if(hit4) return {voice:hit4, reason:'Hindi'};
+
+  // 3. Indian English female
+  let hit5 = v.find(x => /^en-IN/i.test(x.lang) && isFemale(x.name));
+  if(hit5) return {voice:hit5, reason:'Indian English female'};
+
+  // 4. Any female voice
+  let hit6 = v.find(x => isFemale(x.name));
+  if(hit6) return {voice:hit6, reason:'Female ('+hit6.lang+')'};
+
+  // 5. Fallback
+  return {voice:null, reason:'System default'};
+}
+
+
+// Warm the TTS engine on the first user tap so later speak() calls are allowed
+let _ttsWarm = false;
+function warmTTS(){
+  if(_ttsWarm || !('speechSynthesis' in window)) return;
+  _ttsWarm = true;
+  try {
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0.01; u.rate = 2;
+    window.speechSynthesis.speak(u);
+    window.speechSynthesis.cancel();
+  } catch(e){}
+  try { window.speechSynthesis.getVoices(); } catch(e){}
+}
+document.addEventListener('pointerdown', warmTTS, {once:false, passive:true});
+document.addEventListener('touchstart', warmTTS, {once:false, passive:true});
+document.addEventListener('click', warmTTS, {once:false, passive:true});
+
+// Also force the toggle ON if it was ever set
+(function(){
+  if(localStorage.getItem('mano_voice_output') === null){
+    localStorage.setItem('mano_voice_output', 'true');
+  }
+})();
+
+function speakText(t){
+  if(!t || !String(t).trim()) return;
+  if(!('speechSynthesis' in window)) return;
+  if(localStorage.getItem('mano_voice_output') !== 'true') return;
+
+  try { window.speechSynthesis.cancel(); } catch(e){}
+
+  const u = new SpeechSynthesisUtterance(String(t).trim());
+
+  // Pick language: setting > auto-detect from text > fallback
+  let langSetting = getLangTTS();
+  if(langSetting === 'auto'){
+    const d = detectScript(String(t));
+    langSetting = (d === 'ur' || d === 'hi') ? d : 'auto';
+  }
+
+  const chosen = pickVoiceForLang(langSetting);
+  if(chosen){ u.voice = chosen; u.lang = chosen.lang; }
+  else {
+    u.lang = langSetting === 'ur' ? 'ur-PK'
+           : langSetting === 'hi' ? 'hi-IN'
+           : langSetting === 'en-IN' ? 'en-IN'
+           : 'hi-IN';
+  }
+
+  const pitch = parseFloat(localStorage.getItem('mano_voice_pitch') || '1.55');
+  const rate  = parseFloat(localStorage.getItem('mano_voice_rate')  || '1.02');
+  u.pitch = isNaN(pitch) ? 1.55 : pitch;
+  u.rate  = isNaN(rate)  ? 1.02 : rate;
+  u.volume = 1;
+
+  u.onerror = e => console.warn('TTS error:', e.error);
+  try { window.speechSynthesis.speak(u); } catch(e){ console.warn(e); }
+}
+
+function testVoice(){
+  speakText("Asalam o alaikum! Main Mano hoon. Aap se baat kar ke khushi hui!");
+}
+
+function interceptCommand(m){
+  const s=m.toLowerCase().trim();
+  if(/what.*time|current time/.test(s)) return 'It is currently '+new Date().toLocaleTimeString()+'.';
+  if(/what.*date|today.*date/.test(s)) return 'Today is '+new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'})+'.';
+  if(/weather/.test(s)&&weatherData) return 'In '+weatherData.city+': '+weatherData.temp+'°C, '+weatherCodeToText(weatherData.code)+'.';
+  if(/joke/.test(s)){
+    const j=["Why don't scientists trust atoms? Because they make up everything!","Why did the developer go broke? Because he used up all his cache.","What do you call a fake noodle? An impasta!"];
+    return j[Math.floor(Math.random()*j.length)];
+  }
+  if(/fun fact|interesting/.test(s)){
+    const f=["Honey never spoils.","A day on Venus is longer than a year on Venus.","Octopuses have three hearts."];
+    return f[Math.floor(Math.random()*f.length)];
+  }
+  return null;
+}
+
+async function sendMessage(){
+  // Guarantee TTS is enabled (user may not have flipped the toggle)
+  voiceOutputEnabled = true;
+  localStorage.setItem('mano_voice_output', 'true');
+  const vt = document.getElementById('toggle-voice'); if(vt) vt.checked = true;
+  warmTTS();
+
+  const msg=userInput.value.trim();
+  const key=localStorage.getItem('mano_groq_key')||'';
+  const model=localStorage.getItem('mano_model')||'openai/gpt-oss-120b';
+  if(!msg) return;
+  addMessage(msg,'user');
+  userInput.value='';
+  const local=interceptCommand(msg);
+  if(local){
+    showTyping();
+    setTimeout(()=>{hideTyping();addMessage(local,'ai');speakText(local)},300);
+    return;
+  }
+  // Puter bridge needs no key — proceed even if empty
+  showTyping();
+  try{
+    const r=await fetch('/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:msg,api_key:key,model:model,lang:getLangChat()})
+    });
+    const data=await r.json();
+    hideTyping();
+    addMessage(data.reply||'(empty reply)','ai');
+    if(data.reply) speakText(data.reply);
+  }catch(e){
+    hideTyping();
+    addMessage("⚠️ " + (e && e.message ? e.message : "Request failed. Check that Flask is running and reachable."), 'ai');
+  }
+}
+function handleKeyPress(e){if(e.key==='Enter') sendMessage()}
+
+function startVoice(){
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)){
+    showToast('🎤 Not supported');
+    return;
+  }
+  const btn = document.getElementById('mic-btn');
+  if(btn) btn.classList.add('recording');
+  const sttLang = getLangSTT();
+  showToast('🎤 Listening (' + sttLang + ')...');
+
+  voiceSessionActive = true;
+  if(wakeRestartTimer){ clearTimeout(wakeRestartTimer); wakeRestartTimer = null; }
+  if(wakeRecognition){ try{ wakeRecognition.onend = null; wakeRecognition.abort(); }catch(e){} wakeRecognition = null; }
+
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const r = new SR();
+  r.lang = sttLang;
+  r.continuous = false;
+  r.interimResults = false;
+  r.maxAlternatives = 1;
+
+  r.onresult = function(e){
+    if(btn) btn.classList.remove('recording');
+    const txt = e.results[0][0].transcript;
+    userInput.value = txt;
+    sendMessage();
+  };
+  r.onerror = function(e){
+    if(btn) btn.classList.remove('recording');
+    if(e.error === 'not-allowed') showToast('🎤 Mic permission denied');
+    else if(e.error === 'no-speech') showToast('🎤 Kuchh suna nahi — try again');
+    else if(e.error === 'language-not-supported') showToast('🎤 Language not supported on this phone');
+    console.warn('STT error:', e.error);
+  };
+  r.onend = function(){
+    if(btn) btn.classList.remove('recording');
+    voiceSessionActive = false;
+    if(wakeWordEnabled) setTimeout(startWakeWord, 800);
+  };
+  try { r.start(); }
+  catch(e){ voiceSessionActive = false; if(btn) btn.classList.remove('recording'); }
+}
+</script>
+</body>
+</html>
